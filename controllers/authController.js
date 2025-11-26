@@ -76,39 +76,50 @@ exports.verifyRegisterOTP = async (req, res) => {
   }
 };
 exports.loginSendOTP = async (req, res) => {
+  console.log('working');
   const { email, otp } = req.body;
 
   try {
+    console.log('Try Started');
     const user = await pool.query('SELECT * FROM users WHERE email=$1', [
       email,
     ]);
+    console.log(user.fields);
 
-    if (user.rows.length === 0)
+    if (user.rows.length === 0) {
+      console.log('Length is 0');
       return res.status(400).json({ message: 'User not found' });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = Date.now() + 5 * 60 * 1000;
-
+    console.log('Updating Otp');
     await pool.query('UPDATE users SET otp=$1, otp_expiry=$2 WHERE email=$3', [
       otp,
       otpExpiry,
       email,
     ]);
+    console.log('Otp Updated');
 
+    console.log('Creating Mail');
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
     });
+    console.log('Mail Created');
 
+    console.log('Sending Mail');
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Your Login OTP',
       text: `Your OTP is: ${otp} (valid for 5 minutes)`,
     });
+    console.log('Mail Sent');
 
     res.json({ message: 'OTP sent successfully' });
   } catch (err) {
+    console.log(err.message);
     res.status(500).json({ error: err.message });
   }
 };
