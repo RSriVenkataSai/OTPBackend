@@ -7,7 +7,7 @@ const transporter = nodemailer.createTransport({
   port: parseInt(process.env.SMTP_PORT),
   secure: false,
   auth: {
-    user: process.env.EMAIL_FROM,
+    user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
   tls: { rejectUnauthorized: false },
@@ -36,7 +36,7 @@ exports.sendRegisterOTP = async (req, res) => {
     );
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: process.env.SMTP_USER,
       to: email,
       subject: 'Verify Your Email',
       text: `Your OTP for registration is: ${otp}`,
@@ -101,7 +101,7 @@ exports.loginSendOTP = async (req, res) => {
     ]);
 
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: process.env.SMTP_USER,
       to: email,
       subject: 'Your Login OTP',
       text: `Your OTP is: ${otp} (valid for 5 minutes)`,
