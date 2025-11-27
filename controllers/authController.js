@@ -2,18 +2,16 @@ const pool = require('../db');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-// ⭐ BREVO SMTP TRANSPORTER
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
+  port: parseInt(process.env.SMTP_PORT),
   secure: false,
   auth: {
     user: process.env.EMAIL_FROM,
     pass: process.env.SMTP_PASS,
   },
+  tls: { rejectUnauthorized: false },
 });
-
-// ---------------- REGISTER OTP ----------------
 
 exports.sendRegisterOTP = async (req, res) => {
   const { name } = req.body;
@@ -37,7 +35,6 @@ exports.sendRegisterOTP = async (req, res) => {
       [name, email, otp, otpExpiry],
     );
 
-    // ⭐ SEND EMAIL USING BREVO
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to: email,
@@ -50,8 +47,6 @@ exports.sendRegisterOTP = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-// ---------------- VERIFY REGISTER OTP ----------------
 
 exports.verifyRegisterOTP = async (req, res) => {
   const { email, otp } = req.body;
@@ -78,7 +73,6 @@ exports.verifyRegisterOTP = async (req, res) => {
       data.name,
       data.email,
     ]);
-
     await pool.query('DELETE FROM pending_users WHERE email=$1', [email]);
 
     res.json({ message: 'Registration completed successfully' });
@@ -87,8 +81,6 @@ exports.verifyRegisterOTP = async (req, res) => {
   }
 };
 
-// ---------------- LOGIN SEND OTP ----------------
-
 exports.loginSendOTP = async (req, res) => {
   const { email } = req.body;
 
@@ -96,10 +88,8 @@ exports.loginSendOTP = async (req, res) => {
     const user = await pool.query('SELECT * FROM users WHERE email=$1', [
       email,
     ]);
-
-    if (user.rows.length === 0) {
+    if (user.rows.length === 0)
       return res.status(400).json({ message: 'User not found' });
-    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = Date.now() + 5 * 60 * 1000;
@@ -110,7 +100,6 @@ exports.loginSendOTP = async (req, res) => {
       email,
     ]);
 
-    // ⭐ SEND LOGIN OTP USING BREVO
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to: email,
@@ -125,8 +114,6 @@ exports.loginSendOTP = async (req, res) => {
   }
 };
 
-// ---------------- LOGIN VERIFY OTP ----------------
-
 exports.loginVerifyOTP = async (req, res) => {
   const { email, otp } = req.body;
 
@@ -134,7 +121,6 @@ exports.loginVerifyOTP = async (req, res) => {
     const user = await pool.query('SELECT * FROM users WHERE email=$1', [
       email,
     ]);
-
     if (user.rows.length === 0)
       return res.status(400).json({ message: 'User not found' });
 
@@ -142,7 +128,6 @@ exports.loginVerifyOTP = async (req, res) => {
 
     if (data.otp !== otp)
       return res.status(400).json({ message: 'Invalid OTP' });
-
     if (Date.now() > data.otp_expiry)
       return res.status(400).json({ message: 'OTP expired' });
 
